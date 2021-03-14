@@ -133,14 +133,14 @@ public class SysPermissionServiceImpl implements SysPermissionService {
     }
 
     @Override
-    public List<SysMenuDO> listRoleMenusFromCache(Collection<Long> roleIds, Collection<Integer> menuTypes,
-                                                  Collection<Integer> menusStatuses) {
+    public List<SysMenuDO> getRoleMenusFromCache(Collection<Long> roleIds, Collection<Integer> menuTypes,
+                                                 Collection<Integer> menusStatuses) {
         // 任一一个参数为空时，不返回任何菜单
         if (CollectionUtils.isAnyEmpty(roleIds, menusStatuses, menusStatuses)) {
             return Collections.emptyList();
         }
         // 判断角色是否包含管理员
-        List<SysRoleDO> roleList = roleService.listRolesFromCache(roleIds);
+        List<SysRoleDO> roleList = roleService.getRolesFromCache(roleIds);
         boolean hasAdmin = roleService.hasAnyAdmin(roleList);
         // 获得角色拥有的菜单关联
         if (hasAdmin) { // 管理员，获取到全部
@@ -168,7 +168,7 @@ public class SysPermissionServiceImpl implements SysPermissionService {
         // 如果是管理员的情况下，获取全部菜单编号
         SysRoleDO role = roleService.getRole(roleId);
         if (roleService.hasAnyAdmin(Collections.singletonList(role))) {
-            return CollectionUtils.convertSet(menuService.listMenus(), SysMenuDO::getId);
+            return CollectionUtils.convertSet(menuService.getMenus(), SysMenuDO::getId);
         }
         // 如果是非管理员的情况下，获得拥有的菜单编号
         return CollectionUtils.convertSet(roleMenuMapper.selectListByRoleId(roleId),
@@ -176,7 +176,7 @@ public class SysPermissionServiceImpl implements SysPermissionService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void assignRoleMenu(Long roleId, Set<Long> menuIds) {
         // 获得角色拥有菜单编号
         Set<Long> dbMenuIds = CollectionUtils.convertSet(roleMenuMapper.selectListByRoleId(roleId),
@@ -305,7 +305,7 @@ public class SysPermissionServiceImpl implements SysPermissionService {
         if (roleService.hasAnyAdmin(roleIds)) {
             return true;
         }
-        Set<String> userRoles = CollectionUtils.convertSet(roleService.listRolesFromCache(roleIds),
+        Set<String> userRoles = CollectionUtils.convertSet(roleService.getRolesFromCache(roleIds),
                 SysRoleDO::getCode);
         return CollUtil.containsAny(userRoles, Sets.newHashSet(roles));
     }
